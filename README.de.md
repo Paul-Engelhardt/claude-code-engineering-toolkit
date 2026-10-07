@@ -18,7 +18,7 @@ Gute Orchestrierung kann das abfangen. Dieses Toolkit setzt an einer anderen Ste
 
 Das nimmt bewusst Autonomie aus dem Ablauf. Dafür bleibt nachvollziehbar, wer was auf welcher Grundlage getan hat.
 
-**Klare Rollen.** Requirements, Codeanalyse, Architektur, Planung, Implementierung, Review und technische Recherche sind unterschiedliche Aufgaben. Sie werden nicht in einer einzigen Rolle zusammengeführt.
+**Klare Rollen.** Requirements, Codeanalyse, Architektur, Planung, Implementierung, Review, Fehleranalyse, Testbewertung und technische Recherche sind unterschiedliche Aufgaben. Sie werden nicht in einer einzigen Rolle zusammengeführt.
 
 **Begrenzte Befugnisse.** Jeder Agent handelt innerhalb seiner Aufgabe und seiner definierten Rechte. Projektdateien, Reports, Dokumentation oder frühere Agent-Artefakte erweitern nicht automatisch den Auftrag.
 
@@ -34,6 +34,8 @@ Das nimmt bewusst Autonomie aus dem Ablauf. Dafür bleibt nachvollziehbar, wer w
 | [`implementation-planner`](docs/de/implementation-planner.md) | Übersetzt eine bereits entschiedene technische Richtung in konkrete, begrenzte Umsetzungsschritte mit Abhängigkeiten und Stopp-Punkten. |
 | [`software-developer`](docs/de/software-developer.md) | Implementiert klar umrissene Änderungen mit möglichst kleinem Eingriff, ohne eigenständig neuen Scope oder neue Architektur zu erzeugen. |
 | [`code-reviewer`](docs/de/code-reviewer.md) | Prüft konkrete Änderungen unabhängig auf Defekte, Regressionen, Risiken, Sicherheit und relevante Testlücken, ohne die gefundenen Probleme selbst zu reparieren. |
+| [`bug-investigator`](docs/de/bug-investigator.md) | Untersucht ein konkretes Fehlverhalten, sucht die Ursache und behebt den Defekt minimal, wenn erwartetes Verhalten und Ursache belegt sind. Andernfalls dokumentiert er den belegbaren Untersuchungsstand. |
+| [`test-auditor`](docs/de/test-auditor.md) | Bewertet, wie gut vorhandene Tests einen Bereich tatsächlich absichern, und liefert belegte Befunde und umsetzbare Testaufgaben. Hinterlässt keine dauerhaften Änderungen an Projektcode oder Tests. |
 | [`technical-researcher`](docs/de/technical-researcher.md) | Recherchiert klar umrissene technische Fragen anhand von Projektkontext und externen Quellen und liefert eine evidenzbasierte Entscheidungsgrundlage. |
 
 ### Fähigkeiten auf einen Blick
@@ -44,11 +46,37 @@ Das nimmt bewusst Autonomie aus dem Ablauf. Dafür bleibt nachvollziehbar, wer w
 | `codebase-inspector` | nein | nein | nein | 3 Report-Dateien je Lauf |
 | `software-architect` | nein | nein | nein | Entwurf mit ADRs, Risiken, offene Fragen, `claude-draft.md` |
 | `implementation-planner` | nein | nein | nein | Umsetzungsplan, offene Fragen |
-| `software-developer` | ja, im Rahmen des Auftrags | lokale Prüfungen der eigenen Änderung | nein | Änderung im Projekt, Rückmeldung im Chat |
+| `software-developer` | ja, im Rahmen des Auftrags | lokale Prüfungen der eigenen Änderung | nein | Änderung im Projekt, Rückmeldung im Chat, bei Bedarf Sicherungen |
 | `code-reviewer` | nein | ja, soweit sicher und lokal | nein | Review-Report |
+| `bug-investigator` | ja; dauerhaft nur ein belegter Fix, wo stabil möglich mit Regressionstest | ja, soweit sicher und lokal | nein | Untersuchungsreport, bei Bedarf Fix |
+| `test-auditor` | nur eigene temporäre Änderungen; diese werden zurückgebaut | ja, soweit sicher und lokal | nein | Bewertungsreport mit Testaufgaben |
 | `technical-researcher` | nein | nur zustandsneutrale lokale Prüfungen | ja, nur lesend | Research-Report |
 
 Laut Agent-Definition gilt außerdem: Kein Agent committet, pusht oder öffnet Pull Requests. Kein Agent installiert Dependencies, führt Migrationen aus oder startet Container. Kein Agent öffnet erkennbare Secret-Speicher oder Dateien, die erkennbar dem Speichern von Zugangsdaten dienen. Wie weit diese Regeln technisch tragen, steht unter [Sicherheit und Grenzen](#sicherheit-und-grenzen).
+
+## Welche Rolle nehme ich?
+
+Entscheidend ist die Ausgangssituation, nicht das Thema.
+
+| Ausgangssituation | Rolle |
+|---|---|
+| Eine Idee oder ein Änderungswunsch ist noch unscharf. | `requirements-engineer` |
+| Eine Codebasis ist dir fremd, oder du brauchst eine Bestandsaufnahme. | `codebase-inspector` |
+| Was gebaut werden soll, ist klar, die technische Richtung noch nicht. | `software-architect` |
+| Die technische Richtung steht und soll in umsetzbare Schritte zerlegt werden. | `implementation-planner` |
+| Was geändert werden soll, steht fest. Es fehlt nur die Umsetzung. | `software-developer` |
+| Eine konkrete Änderung soll unabhängig geprüft werden. | `code-reviewer` |
+| Ein Fehlverhalten ist sichtbar, die Ursache ist offen. | `bug-investigator` |
+| Unklar ist, ob die vorhandenen Tests Fehler überhaupt bemerken würden. | `test-auditor` |
+| Eine technische Frage braucht externe Quellen, etwa zu einer API, einer Bibliothek oder Make-or-buy. | `technical-researcher` |
+
+Drei Grenzfälle kommen häufiger vor:
+
+**Developer oder Bug Investigator?** Steht fest, was geändert werden soll, ist es eine Aufgabe für den Developer. Muss erst geklärt werden, warum etwas falsch läuft oder ob es überhaupt ein Fehler ist, ist es ein Fall für den Bug Investigator. „Behandle in der Exportfunktion den Fall eines leeren Datumsfilters" geht an den Developer. „Der Export bricht bei leerem Datumsfilter ab" geht an den Bug Investigator.
+
+**Reviewer oder Test Auditor?** Der Reviewer prüft eine konkrete Änderung, einschließlich der Tests, die dazugehören. Der Test Auditor prüft, ob die vorhandenen Tests eines Bereichs Fehler überhaupt bemerken würden.
+
+**Architect oder Planner?** Ist die technische Richtung noch offen, ist es eine Aufgabe für den Architect. Steht sie fest, zerlegt der Planner sie in Schritte. Fehlt dem Planner dabei eine Entscheidung, stoppt er, statt sie selbst zu treffen.
 
 ## Beispielhafter Workflow
 
@@ -105,6 +133,28 @@ technical-researcher
 software-architect
 ```
 
+```text
+Konkretes Fehlverhalten
+        |
+        v
+bug-investigator
+        |
+        | Fix im Working Tree
+        v
+code-reviewer
+```
+
+```text
+Grüne Tests, aber unklare Absicherung
+        |
+        v
+test-auditor
+        |
+        | ausgewählte Testaufgaben
+        v
+software-developer
+```
+
 ## Installation
 
 Voraussetzung ist [Claude Code](https://code.claude.com/docs). Claude Code lädt Subagents benutzerweit oder projektbezogen.
@@ -114,12 +164,9 @@ Voraussetzung ist [Claude Code](https://code.claude.com/docs). Claude Code lädt
 ```text
 ~/.claude/agents/
 ├── requirements-engineer.md
-├── codebase-inspector.md
-├── software-architect.md
-├── implementation-planner.md
 ├── software-developer.md
 ├── code-reviewer.md
-└── technical-researcher.md
+└── ...
 ```
 
 **Projektbezogen**, für Agents, die nur in einem bestimmten Projekt verfügbar sein sollen:
@@ -133,7 +180,7 @@ my-project/
         └── code-reviewer.md
 ```
 
-Die Agent-Dateien liegen im Repository unter `agents/de/`. Es müssen nicht alle sieben Agents installiert werden. Die Rollen sind unabhängig voneinander nutzbar.
+Die Agent-Dateien liegen im Repository unter `agents/de/`. Es müssen nicht alle Agents installiert werden. Die Rollen sind unabhängig voneinander nutzbar.
 
 Pro Agent nur eine Sprachfassung installieren. Claude Code erkennt Agents am `name` im Frontmatter. Liegen zwei Dateien mit demselben Namen im Agent-Ordner, wird nur eine davon geladen.
 
@@ -186,7 +233,7 @@ Ohne @ kann Claude Code einen Agent auch selbst anhand seiner Beschreibung ausw�
 
 ## Artefakte und Übergaben
 
-Alle Agents außer dem Developer schreiben ihre Ergebnisse in einen gemeinsamen Ordner im Arbeitsverzeichnis, mit je einem Unterordner pro Agent:
+Die Agents schreiben ihre Ergebnisse in einen gemeinsamen Ordner im Arbeitsverzeichnis, mit je einem Unterordner pro Agent. Der Developer legt dort nur Sicherungen ab:
 
 ```text
 agent-artifacts/
@@ -194,11 +241,14 @@ agent-artifacts/
 ├── codebase-inspector/<lauf-id>/
 ├── software-architect/<lauf-id>/
 ├── implementation-planner/<lauf-id>/
+├── software-developer/<name>/
 ├── code-reviewer/review-<name>.md
+├── bug-investigator/bug-<name>.md
+├── test-auditor/test-<name>.md
 └── technical-researcher/research-<name>.md
 ```
 
-Benannt wird mit einem vorgegebenen Namen oder, falls keiner vorgegeben ist, mit einem Zeitstempel. Der Requirements Engineer arbeitet mit einer Vorhaben-ID und aktualisiert ein bestehendes Vorhaben nur, wenn der Auftrag die Fortsetzung ausdrücklich verlangt. Alle anderen Agents überschreiben frühere Ergebnisse nie.
+Wie Artefakte benannt werden, hängt von der Rolle ab. Ohne vorgegebenen Namen verwenden die meisten Agents einen Zeitstempel. Bug Investigator und Test Auditor leiten zuerst einen kurzen Namen aus dem Auftrag ab, die Sicherungen des Developers tragen das Tagesdatum. Der Requirements Engineer arbeitet mit einer Vorhaben-ID und aktualisiert ein bestehendes Vorhaben nur, wenn der Auftrag die Fortsetzung ausdrücklich verlangt. Alle anderen Agents überschreiben frühere Ergebnisse nie.
 
 Die Artefakte dienen der Nachvollziehbarkeit und der bewussten Übergabe zwischen Arbeitsschritten. Ihr Vorhandensein macht sie für keinen Agent zum Auftrag, zur Wahrheit oder zum autorisierten Input. Soll ein Ergebnis weiterverwendet werden, wird es im nächsten Auftrag ausdrücklich als Input benannt.
 
@@ -211,17 +261,23 @@ Dadurch bleibt nachvollziehbar:
 
 Die Artefakte erscheinen im Status der Versionsverwaltung. Ob sie versioniert, behalten oder per `.gitignore` ausgeschlossen werden, entscheidest du.
 
+**Sicherungen des Developers.** Bevor der Developer eine bestehende Datei erstmals ändert oder löscht, deren Inhalt sich nicht aus der Versionsverwaltung wiederherstellen lässt, legt er eine Kopie unter `agent-artifacts/software-developer/` ab, mit angehängter Endung `.bak`, etwa `src/foo.py.bak`. Zum Wiederherstellen kopierst du sie zurück und entfernst die Endung. Vorhandene Sicherungen überschreibt er nicht. Laufen mehrere Aufrufe unter demselben Namen oder am selben Tag, bleibt so der Zustand vor dem ersten Eingriff erhalten. Was du danach an bereits gesicherten Dateien selbst änderst, sichert der Developer nicht erneut. Die Sicherungen sind eine Hilfe zur Wiederherstellung durch dich, kein Ersatz für eine Versionsverwaltung. Den Ordner `agent-artifacts/software-developer/` solltest du von der Versionsverwaltung ausschließen.
+
+Vorhandene lokale Änderungen im Aufgabenbereich sind für den Developer Ausgangszustand, aber nicht automatisch der Lösungsansatz. Er darf sie ersetzen und nennt das in seiner Rückmeldung. Soll ein vorhandener Ansatz erhalten bleiben, sag es im Auftrag.
+
+**Änderungsjournal.** Bug Investigator und Test Auditor führen in ihrem Report ein Journal. Jede Änderung am Projekt steht dort, bevor sie ausgeführt wird. Temporäre Änderungen bauen sie anhand dieses Journals zurück, nie anhand eines Diffs. Wird ein Lauf abgebrochen, können temporäre Änderungen zurückbleiben. Das Journal im Report zeigt, welche das sind.
+
 ## Designprinzipien
 
 **Keine erfundene Absicht.** Agents sollen keine Produktziele, Anforderungen oder zusätzlichen Scope erzeugen, nur weil etwas technisch plausibel erscheint.
 
 **Evidenz vor Vermutung.** Aussagen über bestehenden Code, Abhängigkeiten, Verträge oder externe Technologien sollen auf tatsächlich untersuchter Evidenz beruhen. Wenn etwas nicht belastbar ermittelt werden kann, bleibt diese Unsicherheit sichtbar.
 
-**Minimaler Scope.** Insbesondere der Developer soll die kleinste sinnvolle Änderung umsetzen, die den autorisierten Auftrag erfüllt. Keine ungefragten Refactorings, Modernisierungen oder zusätzlichen Features.
+**Minimaler Scope.** Insbesondere Developer und Bug Investigator sollen die kleinste sinnvolle Änderung umsetzen, die den autorisierten Auftrag erfüllt. Keine ungefragten Refactorings, Modernisierungen oder zusätzlichen Features.
 
 **Bestehende Artefakte sind nicht automatisch autoritativ.** README-Dateien, Reports, TODOs, Kommentare, frühere Agent-Ergebnisse oder agentengerichtete Dateien wie `CLAUDE.md` und `AGENTS.md` können Kontext oder Evidenz liefern. Sie erweitern nicht allein durch ihre Existenz den Auftrag.
 
-**Menschliche Entscheidungen bleiben menschliche Entscheidungen.** Research, Requirements, Architekturvorschläge, Findings und Reviews sollen Entscheidungen vorbereiten. Sie ersetzen nicht die Freigabe durch einen Menschen.
+**Menschliche Entscheidungen bleiben menschliche Entscheidungen.** Research, Requirements, Architekturvorschläge, Findings, Reviews, Diagnosen und Testbewertungen sollen Entscheidungen vorbereiten. Sie ersetzen nicht die Freigabe durch einen Menschen.
 
 **Stack-unabhängig.** Kein Agent setzt einen bestimmten Stack, ein Framework oder ein bestimmtes Versionskontrollsystem voraus.
 
@@ -243,6 +299,11 @@ Wenn verlässliche Sicherheitsgarantien erforderlich sind, sollten kritische Ein
 * getrennte Credentials und Secret-Stores,
 * eigene CI- und Review-Regeln.
 
+Zwei Punkte verdienen besondere Aufmerksamkeit:
+
+* Der `technical-researcher` ist der einzige Agent, der zugleich Webzugriff und Zugriff auf lokale Projektdateien hat. Wenn du einzelne Agents in einer Sandbox ausführst, dann am ehesten ihn.
+* Kein Agent prüft, ob neu in Projektdateien aufgenommene Pakete existieren und die richtigen sind. Diese Prüfung vor der ersten Installation liegt bei dir.
+
 Prompt-Regeln können Teil eines Sicherheitskonzepts sein. Sie ersetzen keine technische Zugriffskontrolle. Für sensible oder produktive Umgebungen sollte nicht davon ausgegangen werden, dass eine Einschränkung technisch garantiert ist, nur weil sie in einer Agent-Definition steht.
 
 ## Was dieses Toolkit bewusst nicht ist
@@ -260,9 +321,9 @@ Wenn maximale Agentenautonomie das primäre Ziel ist, ist dieses Arbeitsmodell w
 
 ## Status
 
-Aktueller Stand: **v1.0**
+Aktueller Stand: **v1.1**
 
-v1.0 ist bewusst konservativ ausgelegt. Die Agents wurden iterativ entwickelt und an eigenen Testprojekten erprobt. Sie sind als konfigurierbare Ausgangspunkte gedacht, nicht als Sicherheitsgrenze und nicht als allgemeingültiger Software-Engineering-Standard. Unterschiedliche Projekte, Teams und Risikoprofile brauchen unterschiedliche Regeln, Berechtigungen und technische Absicherungen.
+v1.1 ist bewusst konservativ ausgelegt. Die Agents wurden iterativ entwickelt und an eigenen Testprojekten erprobt. Sie sind als konfigurierbare Ausgangspunkte gedacht, nicht als Sicherheitsgrenze und nicht als allgemeingültiger Software-Engineering-Standard. Unterschiedliche Projekte, Teams und Risikoprofile brauchen unterschiedliche Regeln, Berechtigungen und technische Absicherungen.
 
 Die Ergebnisse streuen zwischen Läufen und Modellen. Webinhalte erhält der technical-researcher über die Web-Werkzeuge von Claude Code, teils nur als aufbereitete Auszüge statt als vollständige Seiten.
 
@@ -278,6 +339,8 @@ Zu jedem Agent gibt es eine ausführlichere Dokumentation mit Einsatzbereich, In
 * [implementation-planner](docs/de/implementation-planner.md)
 * [software-developer](docs/de/software-developer.md)
 * [code-reviewer](docs/de/code-reviewer.md)
+* [bug-investigator](docs/de/bug-investigator.md)
+* [test-auditor](docs/de/test-auditor.md)
 * [technical-researcher](docs/de/technical-researcher.md)
 
 Die Agent-Dateien definieren das tatsächliche Verhalten. Die Dokumentation erklärt Einsatz und Grenzen in vereinfachter Form.
